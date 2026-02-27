@@ -3,319 +3,345 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>廃病院からの脱出</title>
+<title>廃病院からの脱出 - Horror RPG</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Creepster&display=swap');
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @font-face {
+    font-family: 'PixelFont';
+    src: local('Courier New'), local('monospace');
+  }
 
   body {
     background: #0a0a0a;
-    color: #c8c8c8;
-    font-family: 'Noto Sans JP', sans-serif;
+    color: #d0d0d0;
+    font-family: 'Courier New', monospace;
     overflow: hidden;
     height: 100vh;
     width: 100vw;
+    image-rendering: pixelated;
   }
 
-  /* --- Flicker & Noise Overlay --- */
+  /* ===== Overlays ===== */
   #noise-overlay {
     position: fixed; inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      rgba(0,0,0,.15) 0px,
-      rgba(0,0,0,.15) 1px,
-      transparent 1px,
-      transparent 2px
-    );
-    pointer-events: none;
-    z-index: 9999;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0px, rgba(0,0,0,.12) 1px, transparent 1px, transparent 2px);
+    pointer-events: none; z-index: 9999;
     animation: flicker 0.15s infinite;
   }
-  @keyframes flicker {
-    0%   { opacity: 0.97; }
-    50%  { opacity: 1; }
-    100% { opacity: 0.98; }
-  }
+  @keyframes flicker { 0%{opacity:.97} 50%{opacity:1} 100%{opacity:.98} }
 
-  /* --- Vignette --- */
   #vignette {
     position: fixed; inset: 0;
-    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.85) 100%);
-    pointer-events: none;
-    z-index: 9998;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.9) 100%);
+    pointer-events: none; z-index: 9998;
   }
 
-  /* --- Title Screen --- */
+  #fade {
+    position: fixed; inset: 0; background: #000; z-index: 500;
+    opacity: 0; pointer-events: none; transition: opacity 0.6s;
+  }
+  #fade.active { opacity: 1; pointer-events: all; }
+
+  /* ===== Title Screen ===== */
   #title-screen {
     position: fixed; inset: 0;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    background: #000;
-    z-index: 1000;
+    background: #000; z-index: 1000;
     transition: opacity 1.5s;
   }
   #title-screen.hidden { opacity: 0; pointer-events: none; }
-  #title-screen h1 {
-    font-family: 'Creepster', cursive;
-    font-size: 4rem;
-    color: #8b0000;
-    text-shadow: 0 0 20px #8b0000, 0 0 60px #5a0000;
-    letter-spacing: 0.1em;
+
+  .title-main {
+    font-size: 3rem; color: #8b0000;
+    text-shadow: 0 0 20px #8b0000, 0 0 60px #5a0000, 2px 2px 0 #000;
+    letter-spacing: 0.08em;
     animation: titlePulse 3s ease-in-out infinite;
   }
+  .title-sub {
+    font-size: 1.2rem; color: #555; margin-top: 0.3rem;
+    letter-spacing: 0.2em;
+  }
   @keyframes titlePulse {
-    0%, 100% { text-shadow: 0 0 20px #8b0000, 0 0 60px #5a0000; }
-    50%      { text-shadow: 0 0 40px #ff0000, 0 0 80px #8b0000; }
+    0%,100% { text-shadow: 0 0 20px #8b0000, 0 0 60px #5a0000, 2px 2px 0 #000; }
+    50%     { text-shadow: 0 0 40px #ff0000, 0 0 80px #8b0000, 2px 2px 0 #000; }
   }
-  #title-screen p {
-    margin-top: 1rem;
-    font-size: 1.1rem;
-    color: #666;
-  }
-  #start-btn {
-    margin-top: 2.5rem;
-    padding: 0.9rem 3rem;
-    background: transparent;
-    border: 2px solid #8b0000;
-    color: #c8c8c8;
-    font-size: 1.2rem;
-    font-family: 'Noto Sans JP', sans-serif;
-    cursor: pointer;
-    transition: all 0.3s;
-    letter-spacing: 0.15em;
-  }
-  #start-btn:hover {
-    background: #8b0000;
-    color: #fff;
-    box-shadow: 0 0 30px rgba(139,0,0,0.6);
-  }
+  #title-screen p { margin-top: 1.5rem; font-size: 0.95rem; color: #666; }
 
-  /* --- Game Container --- */
-  #game {
-    display: none;
-    width: 100vw; height: 100vh;
-    position: relative;
+  .btn-main {
+    margin-top: 2rem; padding: 0.8rem 3rem;
+    background: transparent; border: 2px solid #8b0000;
+    color: #c8c8c8; font-size: 1.1rem;
+    font-family: 'Courier New', monospace;
+    cursor: pointer; transition: all 0.3s; letter-spacing: 0.15em;
   }
-  #game.active { display: block; }
+  .btn-main:hover { background: #8b0000; color: #fff; box-shadow: 0 0 30px rgba(139,0,0,0.6); }
 
-  /* --- Scene --- */
-  #scene {
-    width: 100%; height: 100%;
-    position: relative;
-    overflow: hidden;
-    transition: background 1s;
+  /* ===== Game Container ===== */
+  #game { display:none; width:100vw; height:100vh; position:relative; }
+  #game.active { display: flex; flex-direction: column; }
+
+  /* ===== Top HUD ===== */
+  #hud {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 16px; background: rgba(0,0,0,0.9);
+    border-bottom: 2px solid #333; z-index: 60;
+    flex-shrink: 0; height: 56px;
   }
-  #scene-illustration {
+  #hud-left { display: flex; align-items: center; gap: 16px; }
+  #hud-right { display: flex; align-items: center; gap: 10px; }
+  .hud-label { color: #8b0000; font-size: 0.75rem; letter-spacing: 0.1em; }
+  .hud-val { color: #ddd; font-size: 0.85rem; }
+
+  .bar-container {
+    width: 140px; height: 14px;
+    background: #1a1a1a; border: 1px solid #444;
+    border-radius: 2px; overflow: hidden; position: relative;
+  }
+  .bar-fill {
+    height: 100%; transition: width 0.5s;
+    position: absolute; left: 0; top: 0;
+  }
+  .bar-hp .bar-fill { background: linear-gradient(90deg, #8b0000, #cc0000); }
+  .bar-exp .bar-fill { background: linear-gradient(90deg, #005580, #00aaff); }
+  .bar-text {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
-    font-size: 12rem;
-    opacity: 0.12;
-    pointer-events: none;
-    user-select: none;
-    transition: opacity 1s;
+    font-size: 0.65rem; color: #fff; text-shadow: 1px 1px 0 #000;
+    z-index: 1;
   }
 
-  /* --- Text Box --- */
-  #text-box {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.7));
-    padding: 1.5rem 2rem 1.2rem;
-    min-height: 180px;
-    border-top: 1px solid rgba(139,0,0,0.4);
-  }
-  #speaker {
-    font-weight: 700;
-    color: #8b0000;
-    font-size: 0.95rem;
-    margin-bottom: 0.5rem;
-    letter-spacing: 0.08em;
-  }
-  #message {
-    font-size: 1rem;
-    line-height: 1.8;
-    min-height: 3.6rem;
-    white-space: pre-wrap;
-  }
-  #message .cursor {
-    display: inline-block;
-    width: 2px; height: 1.1em;
-    background: #8b0000;
-    margin-left: 2px;
-    vertical-align: text-bottom;
-    animation: blink 0.7s step-end infinite;
-  }
-  @keyframes blink {
-    50% { opacity: 0; }
-  }
-
-  /* --- Choices --- */
-  #choices {
-    position: absolute;
-    bottom: 200px; left: 50%;
-    transform: translateX(-50%);
-    display: flex; flex-direction: column;
-    gap: 0.6rem;
-    width: min(90%, 600px);
-    z-index: 50;
-  }
-  .choice-btn {
-    padding: 0.75rem 1.5rem;
-    background: rgba(20,0,0,0.85);
-    border: 1px solid rgba(139,0,0,0.5);
-    color: #c8c8c8;
-    font-size: 1rem;
-    font-family: 'Noto Sans JP', sans-serif;
-    cursor: pointer;
-    transition: all 0.25s;
-    text-align: left;
-  }
-  .choice-btn:hover {
-    background: rgba(139,0,0,0.35);
-    border-color: #8b0000;
-    padding-left: 2rem;
-  }
-
-  /* --- Inventory --- */
-  #inventory-bar {
-    position: absolute;
-    top: 1rem; right: 1rem;
-    display: flex; gap: 0.5rem;
-    z-index: 50;
-  }
-  .inv-item {
-    width: 48px; height: 48px;
-    background: rgba(20,0,0,0.8);
-    border: 1px solid rgba(139,0,0,0.5);
+  .inv-item-hud {
+    width: 36px; height: 36px;
+    background: rgba(30,10,10,0.8); border: 1px solid rgba(139,0,0,0.5);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem;
-    border-radius: 4px;
-    position: relative;
-    cursor: default;
+    font-size: 1.2rem; border-radius: 3px; position: relative; cursor: default;
   }
-  .inv-item .tooltip {
-    display: none;
-    position: absolute;
-    bottom: -2rem;
-    background: rgba(0,0,0,0.9);
-    color: #aaa;
-    padding: 2px 8px;
-    font-size: 0.75rem;
-    white-space: nowrap;
-    border-radius: 3px;
+  .inv-item-hud .tooltip {
+    display: none; position: absolute; top: 42px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.95); color: #aaa; padding: 3px 8px;
+    font-size: 0.7rem; white-space: nowrap; border-radius: 3px; border: 1px solid #333;
+    z-index: 100;
   }
-  .inv-item:hover .tooltip { display: block; }
+  .inv-item-hud:hover .tooltip { display: block; }
 
-  /* --- Room Name --- */
-  #room-name {
-    position: absolute;
-    top: 1rem; left: 1.5rem;
-    font-size: 0.85rem;
-    color: #8b0000;
-    letter-spacing: 0.15em;
-    z-index: 50;
+  /* ===== Scene Area ===== */
+  #scene-area {
+    flex: 1; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.8s;
+  }
+  #room-label {
+    position: absolute; top: 12px; left: 16px;
+    font-size: 0.8rem; color: #8b0000; letter-spacing: 0.15em;
     text-shadow: 0 0 10px rgba(139,0,0,0.5);
   }
-
-  /* --- Jump-scare overlay --- */
-  #jumpscare {
-    position: fixed; inset: 0;
-    background: #000;
-    display: none;
-    align-items: center; justify-content: center;
-    z-index: 10000;
-    flex-direction: column;
-  }
-  #jumpscare.active { display: flex; }
-  #jumpscare .scare-text {
-    font-size: 8rem;
-    animation: scareShake 0.1s infinite;
-  }
-  @keyframes scareShake {
-    0%  { transform: translate(0, 0) rotate(0deg); }
-    25% { transform: translate(-5px, 5px) rotate(-2deg); }
-    50% { transform: translate(5px, -5px) rotate(2deg); }
-    75% { transform: translate(-3px, -3px) rotate(-1deg); }
-    100%{ transform: translate(3px, 3px) rotate(1deg); }
-  }
-
-  /* --- Ending Screen --- */
-  #ending-screen {
-    position: fixed; inset: 0;
-    background: #000;
-    display: none;
-    flex-direction: column;
-    align-items: center; justify-content: center;
-    z-index: 10000;
-  }
-  #ending-screen.active { display: flex; }
-  #ending-screen h2 {
-    font-family: 'Creepster', cursive;
-    font-size: 3rem;
-    margin-bottom: 1rem;
-  }
-  #ending-screen p {
-    font-size: 1.1rem;
-    max-width: 520px;
-    text-align: center;
-    line-height: 1.8;
-    color: #999;
-  }
-  #ending-screen button {
-    margin-top: 2rem;
-    padding: 0.8rem 2.5rem;
-    background: transparent;
-    border: 2px solid #8b0000;
-    color: #c8c8c8;
-    font-size: 1rem;
-    font-family: 'Noto Sans JP', sans-serif;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-  #ending-screen button:hover {
-    background: #8b0000;
-    color: #fff;
-  }
-
-  /* --- Screen-shake --- */
-  .screen-shake {
-    animation: screenShake 0.4s;
-  }
-  @keyframes screenShake {
-    0%   { transform: translate(0,0); }
-    20%  { transform: translate(-8px,4px); }
-    40%  { transform: translate(6px,-6px); }
-    60%  { transform: translate(-4px,8px); }
-    80%  { transform: translate(8px,-2px); }
-    100% { transform: translate(0,0); }
-  }
-
-  /* --- Fade transition --- */
-  #fade {
-    position: fixed; inset: 0;
-    background: #000;
-    z-index: 500;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.8s;
-  }
-  #fade.active { opacity: 1; pointer-events: all; }
-
-  /* --- Blood drip decoration --- */
-  .blood-drip {
+  #scene-emoji {
+    font-size: 10rem; opacity: 0.1; user-select: none; pointer-events: none;
     position: absolute;
-    top: 0;
-    width: 4px;
+  }
+
+  /* Blood drips */
+  .blood-drip {
+    position: absolute; top: 0; width: 3px;
     background: linear-gradient(to bottom, #8b0000, transparent);
-    border-radius: 0 0 2px 2px;
-    opacity: 0.4;
+    border-radius: 0 0 2px 2px; opacity: 0.35;
     animation: drip 4s ease-in infinite;
   }
-  @keyframes drip {
-    0%   { height: 0; opacity: 0.5; }
-    80%  { height: 120px; opacity: 0.3; }
-    100% { height: 120px; opacity: 0; }
+  @keyframes drip { 0%{height:0;opacity:0.4} 80%{height:100px;opacity:0.25} 100%{height:100px;opacity:0} }
+
+  /* ===== Text Box ===== */
+  #text-box {
+    flex-shrink: 0; min-height: 140px; max-height: 160px;
+    background: linear-gradient(to top, rgba(0,0,0,0.97), rgba(5,0,0,0.9));
+    padding: 12px 20px; border-top: 2px solid #333;
+    overflow-y: auto;
+  }
+  #speaker { font-weight: 700; color: #8b0000; font-size: 0.85rem; margin-bottom: 4px; letter-spacing: 0.08em; }
+  #message { font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; }
+  #message .cursor {
+    display: inline-block; width: 8px; height: 1em;
+    background: #8b0000; margin-left: 2px; vertical-align: text-bottom;
+    animation: blink 0.6s step-end infinite;
+  }
+  @keyframes blink { 50%{opacity:0} }
+
+  /* ===== Choices ===== */
+  #choices {
+    position: absolute; bottom: 170px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 5px;
+    width: min(92%, 560px); z-index: 60;
+  }
+  .choice-btn {
+    padding: 8px 16px;
+    background: rgba(15,0,0,0.9); border: 1px solid rgba(139,0,0,0.4);
+    color: #c8c8c8; font-size: 0.9rem;
+    font-family: 'Courier New', monospace;
+    cursor: pointer; transition: all 0.2s; text-align: left;
+  }
+  .choice-btn:hover {
+    background: rgba(139,0,0,0.3); border-color: #8b0000;
+    padding-left: 24px; color: #fff;
+  }
+
+  /* ===== Battle Screen ===== */
+  #battle-screen {
+    position: fixed; inset: 0; z-index: 800;
+    display: none; flex-direction: column;
+    background: #050005;
+  }
+  #battle-screen.active { display: flex; }
+
+  #battle-bg {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+    background: radial-gradient(ellipse at center bottom, #1a0505 0%, #050005 70%);
+  }
+  #battle-bg .enemy-sprite {
+    font-size: 8rem; filter: drop-shadow(0 0 20px rgba(139,0,0,0.5));
+    animation: enemyIdle 2s ease-in-out infinite;
+    transition: filter 0.2s, transform 0.2s;
+  }
+  @keyframes enemyIdle {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-8px); }
+  }
+  .enemy-hit { animation: enemyHit 0.3s !important; filter: brightness(3) !important; }
+  @keyframes enemyHit {
+    0%  { transform: translate(0,0); filter: brightness(3); }
+    25% { transform: translate(-10px,0); }
+    50% { transform: translate(10px,0); }
+    75% { transform: translate(-5px,0); }
+    100%{ transform: translate(0,0); }
+  }
+
+  #enemy-info {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    text-align: center;
+  }
+  #enemy-name { font-size: 1rem; color: #cc4444; margin-bottom: 4px; letter-spacing: 0.1em; }
+  #enemy-hp-bar {
+    width: 200px; height: 16px; background: #1a1a1a;
+    border: 1px solid #555; border-radius: 2px; overflow: hidden; position: relative;
+  }
+  #enemy-hp-fill {
+    height: 100%; background: linear-gradient(90deg, #660000, #cc0000);
+    transition: width 0.4s; position: absolute; left: 0; top: 0;
+  }
+  #enemy-hp-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; color: #fff; text-shadow: 1px 1px 0 #000; z-index: 1;
+  }
+
+  #battle-log {
+    height: 60px; padding: 8px 16px;
+    background: rgba(0,0,0,0.95); border-top: 2px solid #333;
+    font-size: 0.85rem; line-height: 1.5; overflow-y: auto;
+    color: #aaa;
+  }
+
+  #battle-actions {
+    display: flex; gap: 0; border-top: 1px solid #333;
+    flex-shrink: 0; background: #0a0a0a;
+  }
+  .battle-btn {
+    flex: 1; padding: 14px 8px;
+    background: rgba(10,0,0,0.95);
+    border: none; border-right: 1px solid #333;
+    color: #c8c8c8; font-size: 0.95rem;
+    font-family: 'Courier New', monospace;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .battle-btn:last-child { border-right: none; }
+  .battle-btn:hover { background: rgba(139,0,0,0.3); color: #fff; }
+  .battle-btn:disabled { color: #444; cursor: default; }
+  .battle-btn:disabled:hover { background: rgba(10,0,0,0.95); color: #444; }
+
+  /* Player damage flash */
+  .player-damage { animation: playerDmg 0.3s; }
+  @keyframes playerDmg {
+    0%,100% { border-color: #333; }
+    50%     { border-color: #ff0000; background: rgba(80,0,0,0.3); }
+  }
+
+  /* ===== Jumpscare ===== */
+  #jumpscare {
+    position: fixed; inset: 0; background: #000;
+    display: none; align-items: center; justify-content: center;
+    z-index: 10000; flex-direction: column;
+  }
+  #jumpscare.active { display: flex; }
+  #jumpscare .scare-text { font-size: 8rem; animation: scareShake 0.1s infinite; }
+  @keyframes scareShake {
+    0%{transform:translate(0,0) rotate(0deg)} 25%{transform:translate(-5px,5px) rotate(-2deg)}
+    50%{transform:translate(5px,-5px) rotate(2deg)} 75%{transform:translate(-3px,-3px) rotate(-1deg)}
+    100%{transform:translate(3px,3px) rotate(1deg)}
+  }
+
+  /* ===== Level Up ===== */
+  #levelup-overlay {
+    position: fixed; inset: 0; z-index: 900;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.85);
+  }
+  #levelup-overlay.active { display: flex; }
+  #levelup-box {
+    text-align: center; padding: 30px 50px;
+    border: 2px solid #aa8800; background: rgba(20,15,0,0.95);
+    animation: lvlGlow 1s ease-in-out infinite alternate;
+  }
+  @keyframes lvlGlow {
+    from { box-shadow: 0 0 20px rgba(170,136,0,0.3); }
+    to   { box-shadow: 0 0 40px rgba(170,136,0,0.6); }
+  }
+  #levelup-box h2 { color: #ffcc00; font-size: 1.8rem; letter-spacing: 0.1em; }
+  #levelup-box p { color: #cca; font-size: 0.9rem; margin-top: 8px; line-height: 1.6; }
+
+  /* ===== Ending ===== */
+  #ending-screen {
+    position: fixed; inset: 0; background: #000;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 10000;
+  }
+  #ending-screen.active { display: flex; }
+  #ending-screen h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+  #ending-screen p { font-size: 0.95rem; max-width: 520px; text-align: center; line-height: 1.8; color: #999; }
+
+  /* ===== Screen Shake ===== */
+  .screen-shake { animation: screenShake 0.35s; }
+  @keyframes screenShake {
+    0%{transform:translate(0,0)} 20%{transform:translate(-6px,3px)}
+    40%{transform:translate(5px,-5px)} 60%{transform:translate(-3px,6px)}
+    80%{transform:translate(6px,-2px)} 100%{transform:translate(0,0)}
+  }
+
+  /* ===== Damage Numbers ===== */
+  .dmg-number {
+    position: absolute; font-size: 1.8rem; font-weight: bold;
+    pointer-events: none; z-index: 100;
+    animation: dmgFloat 1s forwards;
+  }
+  .dmg-number.player-dmg { color: #ff4444; }
+  .dmg-number.enemy-dmg  { color: #ffcc00; }
+  .dmg-number.heal        { color: #44ff44; }
+  @keyframes dmgFloat {
+    0%   { opacity: 1; transform: translateY(0) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+  }
+
+  /* ===== Volume Control ===== */
+  #vol-control {
+    position: fixed; bottom: 8px; right: 12px; z-index: 9999;
+    display: flex; align-items: center; gap: 6px;
+    opacity: 0.5; transition: opacity 0.3s;
+  }
+  #vol-control:hover { opacity: 1; }
+  #vol-control label { color: #555; font-size: 0.7rem; }
+  #vol-slider {
+    width: 60px; height: 4px; accent-color: #8b0000;
+    cursor: pointer;
   }
 </style>
 </head>
@@ -325,237 +351,434 @@
 <div id="vignette"></div>
 <div id="fade"></div>
 
-<!-- Title Screen -->
+<!-- Volume -->
+<div id="vol-control">
+  <label>VOL</label>
+  <input type="range" id="vol-slider" min="0" max="100" value="50">
+</div>
+
+<!-- Title -->
 <div id="title-screen">
-  <h1>廃病院からの脱出</h1>
-  <p>― あなたは目を覚ました。ここは…どこだ？ ―</p>
-  <button id="start-btn">ENTER</button>
+  <div class="title-main">廃病院からの脱出</div>
+  <div class="title-sub">― HORROR RPG ―</div>
+  <p>目を覚ますと、そこは闇に包まれた廃病院だった。</p>
+  <button class="btn-main" id="start-btn">GAME START</button>
 </div>
 
 <!-- Game -->
 <div id="game">
-  <div id="scene">
-    <div id="scene-illustration"></div>
-    <!-- Blood drips -->
-    <div class="blood-drip" style="left:10%; animation-delay:0s;"></div>
-    <div class="blood-drip" style="left:30%; animation-delay:1.2s;"></div>
-    <div class="blood-drip" style="left:55%; animation-delay:2.5s;"></div>
-    <div class="blood-drip" style="left:80%; animation-delay:0.8s;"></div>
-    <div class="blood-drip" style="left:92%; animation-delay:3.1s;"></div>
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-left">
+      <div>
+        <div class="hud-label">Lv.<span id="hud-lv">1</span> <span id="hud-name">主人公</span></div>
+        <div class="bar-container bar-hp">
+          <div class="bar-fill" id="hp-fill" style="width:100%"></div>
+          <div class="bar-text" id="hp-text">50 / 50</div>
+        </div>
+      </div>
+      <div>
+        <div class="hud-label">EXP</div>
+        <div class="bar-container bar-exp">
+          <div class="bar-fill" id="exp-fill" style="width:0%"></div>
+          <div class="bar-text" id="exp-text">0 / 20</div>
+        </div>
+      </div>
+      <div>
+        <div class="hud-label">ATK <span id="hud-atk" class="hud-val">8</span></div>
+        <div class="hud-label">DEF <span id="hud-def" class="hud-val">4</span></div>
+      </div>
+    </div>
+    <div id="hud-right"></div>
   </div>
-  <div id="room-name"></div>
-  <div id="inventory-bar"></div>
+
+  <!-- Scene -->
+  <div id="scene-area">
+    <div id="room-label"></div>
+    <div id="scene-emoji"></div>
+    <div class="blood-drip" style="left:8%; animation-delay:0s;"></div>
+    <div class="blood-drip" style="left:25%; animation-delay:1.2s;"></div>
+    <div class="blood-drip" style="left:50%; animation-delay:2.5s;"></div>
+    <div class="blood-drip" style="left:75%; animation-delay:0.8s;"></div>
+    <div class="blood-drip" style="left:93%; animation-delay:3.1s;"></div>
+  </div>
+
+  <!-- Choices -->
   <div id="choices"></div>
+
+  <!-- Text Box -->
   <div id="text-box">
     <div id="speaker"></div>
     <div id="message"></div>
   </div>
 </div>
 
-<!-- Jumpscare -->
-<div id="jumpscare">
-  <div class="scare-text"></div>
+<!-- Battle -->
+<div id="battle-screen">
+  <div id="battle-bg">
+    <div id="enemy-info">
+      <div id="enemy-name"></div>
+      <div id="enemy-hp-bar">
+        <div id="enemy-hp-fill" style="width:100%"></div>
+        <div id="enemy-hp-text"></div>
+      </div>
+    </div>
+    <div class="enemy-sprite" id="enemy-sprite"></div>
+  </div>
+  <div id="battle-log"></div>
+  <div id="battle-actions">
+    <button class="battle-btn" id="btn-attack">⚔️ 攻撃</button>
+    <button class="battle-btn" id="btn-skill">🔥 スキル</button>
+    <button class="battle-btn" id="btn-heal">💊 回復</button>
+    <button class="battle-btn" id="btn-flee">🚪 逃げる</button>
+  </div>
 </div>
+
+<!-- Level Up -->
+<div id="levelup-overlay">
+  <div id="levelup-box">
+    <h2>LEVEL UP!</h2>
+    <p id="levelup-text"></p>
+  </div>
+</div>
+
+<!-- Jumpscare -->
+<div id="jumpscare"><div class="scare-text"></div></div>
 
 <!-- Ending -->
 <div id="ending-screen">
   <h2 id="ending-title"></h2>
   <p id="ending-text"></p>
-  <button onclick="location.reload()">もう一度プレイする</button>
+  <button class="btn-main" onclick="location.reload()" style="margin-top:2rem;">もう一度プレイする</button>
 </div>
 
 <script>
-// =====================================================
-// Horror Escape Game Engine
-// =====================================================
-
+// ============================================================
+// HORROR RPG ESCAPE GAME ENGINE
+// ============================================================
 const $ = id => document.getElementById(id);
 
-// --- State ---
+// ============================================================
+// AUDIO ENGINE - BGM & SE via Web Audio API
+// ============================================================
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+let masterGain = null;
+let bgmNodes = [];
+
+function initAudio() {
+  if (actx) return;
+  actx = new AudioCtx();
+  masterGain = actx.createGain();
+  masterGain.gain.value = 0.5;
+  masterGain.connect(actx.destination);
+}
+
+// Volume control
+$('vol-slider').addEventListener('input', e => {
+  const v = e.target.value / 100;
+  if (masterGain) masterGain.gain.value = v;
+});
+
+function tone(freq, dur, type = 'sine', vol = 0.1, delay = 0) {
+  if (!actx) return;
+  const t = actx.currentTime + delay;
+  const osc = actx.createOscillator();
+  const g = actx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  osc.connect(g); g.connect(masterGain);
+  osc.start(t); osc.stop(t + dur);
+  return osc;
+}
+
+// --- BGM System ---
+let currentBgm = null;
+let bgmInterval = null;
+
+function stopBgm() {
+  currentBgm = null;
+  if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
+  bgmNodes.forEach(n => { try { n.stop(); } catch(e){} });
+  bgmNodes = [];
+}
+
+function playBgmExplore() {
+  stopBgm();
+  currentBgm = 'explore';
+  function loop() {
+    if (currentBgm !== 'explore') return;
+    // Eerie ambient drone
+    const notes = [55, 58, 52, 49];
+    const n = notes[Math.floor(Math.random() * notes.length)];
+    tone(n, 4, 'sawtooth', 0.025);
+    tone(n * 1.01, 4, 'sine', 0.02); // slight detune for unease
+    // Random creepy high note
+    if (Math.random() < 0.3) {
+      const delay = 1 + Math.random() * 2;
+      tone(800 + Math.random() * 600, 0.8, 'sine', 0.008, delay);
+    }
+    // Heartbeat-like pulse
+    if (Math.random() < 0.4) {
+      tone(40, 0.15, 'sine', 0.04, 0.5);
+      tone(40, 0.1, 'sine', 0.03, 0.8);
+    }
+  }
+  loop();
+  bgmInterval = setInterval(loop, 4500);
+}
+
+function playBgmBattle() {
+  stopBgm();
+  currentBgm = 'battle';
+  let beat = 0;
+  function loop() {
+    if (currentBgm !== 'battle') return;
+    const t = actx.currentTime;
+    // Driving bass pattern
+    const bassNotes = [82, 82, 98, 82, 73, 73, 82, 73];
+    const b = bassNotes[beat % bassNotes.length];
+    tone(b, 0.2, 'sawtooth', 0.06);
+    tone(b * 0.5, 0.25, 'square', 0.04);
+    // Percussion-like noise
+    if (beat % 2 === 0) {
+      const nOsc = actx.createOscillator();
+      const nG = actx.createGain();
+      nOsc.type = 'square';
+      nOsc.frequency.setValueAtTime(150 + Math.random() * 100, t);
+      nOsc.frequency.exponentialRampToValueAtTime(30, t + 0.08);
+      nG.gain.setValueAtTime(0.07, t);
+      nG.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      nOsc.connect(nG); nG.connect(masterGain);
+      nOsc.start(t); nOsc.stop(t + 0.1);
+      bgmNodes.push(nOsc);
+    }
+    // Tension melody
+    if (beat % 4 === 0) {
+      const melNotes = [330, 311, 293, 277, 330, 370, 293, 247];
+      const m = melNotes[Math.floor(beat / 4) % melNotes.length];
+      tone(m, 0.3, 'triangle', 0.03, 0.1);
+    }
+    beat++;
+  }
+  loop();
+  bgmInterval = setInterval(loop, 280);
+}
+
+function playBgmBoss() {
+  stopBgm();
+  currentBgm = 'boss';
+  let beat = 0;
+  function loop() {
+    if (currentBgm !== 'boss') return;
+    const bassNotes = [55, 55, 65, 55, 49, 49, 55, 49];
+    const b = bassNotes[beat % bassNotes.length];
+    tone(b, 0.2, 'sawtooth', 0.07);
+    tone(b * 2, 0.15, 'square', 0.03);
+    // Heavy percussion
+    const t = actx.currentTime;
+    const nOsc = actx.createOscillator();
+    const nG = actx.createGain();
+    nOsc.type = 'sawtooth';
+    nOsc.frequency.setValueAtTime(200 + Math.random() * 50, t);
+    nOsc.frequency.exponentialRampToValueAtTime(20, t + 0.1);
+    nG.gain.setValueAtTime(0.08, t);
+    nG.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    nOsc.connect(nG); nG.connect(masterGain);
+    nOsc.start(t); nOsc.stop(t + 0.12);
+    bgmNodes.push(nOsc);
+    // Dissonant melody
+    if (beat % 3 === 0) {
+      tone(220, 0.4, 'sawtooth', 0.025, 0);
+      tone(233, 0.4, 'sine', 0.02, 0); // dissonant interval
+    }
+    beat++;
+  }
+  loop();
+  bgmInterval = setInterval(loop, 240);
+}
+
+function playBgmSafe() {
+  stopBgm();
+  currentBgm = 'safe';
+  let beat = 0;
+  function loop() {
+    if (currentBgm !== 'safe') return;
+    // Calm but eerie pads
+    const notes = [220, 262, 330, 262, 247, 294, 330, 294];
+    const n = notes[beat % notes.length];
+    tone(n, 1.5, 'sine', 0.02);
+    tone(n * 0.5, 2, 'triangle', 0.015);
+    beat++;
+  }
+  loop();
+  bgmInterval = setInterval(loop, 2000);
+}
+
+// --- SE (Sound Effects) ---
+function seAttack() {
+  tone(200, 0.1, 'sawtooth', 0.12);
+  tone(300, 0.08, 'square', 0.08, 0.05);
+  tone(150, 0.15, 'sawtooth', 0.06, 0.1);
+}
+function seSkill() {
+  tone(400, 0.15, 'sawtooth', 0.1);
+  tone(500, 0.12, 'sine', 0.08, 0.08);
+  tone(600, 0.1, 'triangle', 0.06, 0.16);
+  tone(700, 0.15, 'sine', 0.05, 0.22);
+}
+function seEnemyAttack() {
+  tone(100, 0.15, 'sawtooth', 0.1);
+  tone(80, 0.2, 'square', 0.08, 0.05);
+}
+function seHeal() {
+  tone(440, 0.2, 'sine', 0.06);
+  tone(550, 0.2, 'sine', 0.05, 0.1);
+  tone(660, 0.25, 'sine', 0.05, 0.2);
+  tone(880, 0.3, 'sine', 0.04, 0.3);
+}
+function seDeath() {
+  tone(200, 0.3, 'sawtooth', 0.1);
+  tone(150, 0.4, 'sawtooth', 0.08, 0.15);
+  tone(100, 0.5, 'sawtooth', 0.06, 0.35);
+  tone(60, 0.8, 'sine', 0.05, 0.55);
+}
+function seVictory() {
+  const ns = [523, 659, 784, 1047];
+  ns.forEach((n,i) => tone(n, 0.3, 'triangle', 0.06, i * 0.15));
+}
+function seLevelUp() {
+  tone(523, 0.15, 'triangle', 0.07);
+  tone(659, 0.15, 'triangle', 0.07, 0.12);
+  tone(784, 0.15, 'triangle', 0.07, 0.24);
+  tone(1047, 0.4, 'triangle', 0.08, 0.36);
+  tone(1047, 0.4, 'sine', 0.05, 0.36);
+}
+function sePickup() {
+  tone(440, 0.12, 'sine', 0.06);
+  tone(660, 0.15, 'sine', 0.05, 0.08);
+}
+function seDoor() {
+  tone(80, 0.5, 'triangle', 0.05);
+  tone(60, 0.7, 'sine', 0.04, 0.15);
+}
+function seUnlock() {
+  tone(330, 0.15, 'triangle', 0.05);
+  tone(440, 0.15, 'triangle', 0.05, 0.12);
+  tone(550, 0.2, 'triangle', 0.05, 0.24);
+}
+function seScare() {
+  tone(180, 0.4, 'sawtooth', 0.14);
+  tone(220, 0.3, 'square', 0.1, 0.02);
+  tone(80, 0.5, 'sawtooth', 0.08, 0.08);
+}
+function seFlee() {
+  tone(300, 0.15, 'triangle', 0.06);
+  tone(350, 0.1, 'triangle', 0.05, 0.1);
+  tone(400, 0.1, 'triangle', 0.04, 0.18);
+}
+function seFleeSuccess() {
+  tone(500, 0.15, 'sine', 0.06);
+  tone(600, 0.12, 'sine', 0.05, 0.1);
+}
+function seMiss() {
+  tone(150, 0.15, 'triangle', 0.04);
+  tone(120, 0.2, 'sine', 0.03, 0.1);
+}
+
+// ============================================================
+// GAME STATE
+// ============================================================
+const player = {
+  name: '主人公',
+  level: 1,
+  hp: 50, maxHp: 50,
+  atk: 8, def: 4,
+  exp: 0, nextExp: 20,
+  potions: 2,
+  skillName: '渾身の一撃',
+  skillCost: 8,
+};
+
 const state = {
   inventory: [],
   flags: {},
   currentRoom: null,
   typing: false,
-  typingResolve: null,
+  inBattle: false,
 };
 
-// --- Audio (Web Audio API for atmosphere) ---
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx;
-
-function initAudio() {
-  if (!audioCtx) audioCtx = new AudioCtx();
-}
-
-function playTone(freq, duration, type = 'sine', vol = 0.08) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + duration);
-}
-
-function playHorrorAmbience() {
-  if (!audioCtx) return;
-  // Low drone
-  playTone(55, 4, 'sawtooth', 0.03);
-  playTone(58, 4, 'sine', 0.02);
-  setTimeout(() => playTone(110, 2, 'triangle', 0.015), 2000);
-}
-
-function playScareSound() {
-  if (!audioCtx) return;
-  playTone(180, 0.5, 'sawtooth', 0.15);
-  playTone(220, 0.3, 'square', 0.12);
-  setTimeout(() => playTone(80, 0.4, 'sawtooth', 0.1), 100);
-}
-
-function playDoorSound() {
-  if (!audioCtx) return;
-  playTone(80, 0.6, 'triangle', 0.06);
-  setTimeout(() => playTone(60, 0.8, 'sine', 0.04), 200);
-}
-
-function playPickupSound() {
-  if (!audioCtx) return;
-  playTone(440, 0.15, 'sine', 0.06);
-  setTimeout(() => playTone(550, 0.15, 'sine', 0.05), 100);
-}
-
-function playUnlockSound() {
-  if (!audioCtx) return;
-  playTone(330, 0.2, 'triangle', 0.06);
-  setTimeout(() => playTone(440, 0.2, 'triangle', 0.06), 150);
-  setTimeout(() => playTone(550, 0.2, 'triangle', 0.06), 300);
-}
-
-// Start ambient loop
-let ambienceInterval;
-function startAmbience() {
-  playHorrorAmbience();
-  ambienceInterval = setInterval(playHorrorAmbience, 5000);
-}
-
-// --- Typewriter ---
-function typeText(speaker, text) {
-  return new Promise(resolve => {
-    $('speaker').textContent = speaker;
-    $('message').innerHTML = '';
-    state.typing = true;
-    state.typingResolve = resolve;
-
-    let i = 0;
-    const cursor = document.createElement('span');
-    cursor.className = 'cursor';
-
-    function tick() {
-      if (!state.typing) {
-        // Skip to end
-        $('message').textContent = text;
-        resolve();
-        return;
-      }
-      if (i < text.length) {
-        $('message').textContent = text.substring(0, i + 1);
-        $('message').appendChild(cursor);
-        i++;
-        // Random timing for creepy effect
-        const delay = text[i - 1] === '。' || text[i - 1] === '…' ? 120 : 30 + Math.random() * 30;
-        setTimeout(tick, delay);
-      } else {
-        state.typing = false;
-        $('message').appendChild(cursor);
-        resolve();
-      }
-    }
-    tick();
-  });
-}
-
-// Click to skip typing
-document.addEventListener('click', () => {
-  if (state.typing) {
-    state.typing = false;
-  }
-});
-
-// --- UI Helpers ---
-function showChoices(choices) {
-  const el = $('choices');
-  el.innerHTML = '';
-  choices.forEach(c => {
-    const btn = document.createElement('button');
-    btn.className = 'choice-btn';
-    btn.textContent = c.text;
-    btn.addEventListener('click', () => {
-      el.innerHTML = '';
-      c.action();
-    });
-    el.appendChild(btn);
-  });
-}
-
-function clearChoices() {
-  $('choices').innerHTML = '';
-}
-
-function updateInventory() {
-  const bar = $('inventory-bar');
+// ============================================================
+// UI HELPERS
+// ============================================================
+function updateHud() {
+  $('hud-lv').textContent = player.level;
+  $('hud-name').textContent = player.name;
+  $('hud-atk').textContent = player.atk;
+  $('hud-def').textContent = player.def;
+  const hpPct = Math.max(0, player.hp / player.maxHp * 100);
+  $('hp-fill').style.width = hpPct + '%';
+  $('hp-text').textContent = `${player.hp} / ${player.maxHp}`;
+  const expPct = player.exp / player.nextExp * 100;
+  $('exp-fill').style.width = expPct + '%';
+  $('exp-text').textContent = `${player.exp} / ${player.nextExp}`;
+  // Inventory
+  const bar = $('hud-right');
   bar.innerHTML = '';
   state.inventory.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'inv-item';
-    div.innerHTML = `${item.icon}<span class="tooltip">${item.name}</span>`;
-    bar.appendChild(div);
+    const d = document.createElement('div');
+    d.className = 'inv-item-hud';
+    d.innerHTML = `${item.icon}<span class="tooltip">${item.name}</span>`;
+    bar.appendChild(d);
   });
+  // Potion count
+  if (player.potions > 0) {
+    const d = document.createElement('div');
+    d.className = 'inv-item-hud';
+    d.innerHTML = `💊<span class="tooltip">回復薬 x${player.potions}</span>`;
+    bar.appendChild(d);
+  }
 }
 
 function addItem(id, name, icon) {
   if (!state.inventory.find(i => i.id === id)) {
     state.inventory.push({ id, name, icon });
-    playPickupSound();
-    updateInventory();
+    sePickup();
+    updateHud();
   }
 }
-
-function hasItem(id) {
-  return state.inventory.some(i => i.id === id);
-}
-
+function hasItem(id) { return state.inventory.some(i => i.id === id); }
 function removeItem(id) {
   state.inventory = state.inventory.filter(i => i.id !== id);
-  updateInventory();
+  updateHud();
 }
 
 function setRoom(name, bg, emoji) {
-  $('room-name').textContent = name;
-  $('scene').style.background = bg;
-  $('scene-illustration').textContent = emoji;
+  $('room-label').textContent = name;
+  $('scene-area').style.background = bg;
+  $('scene-emoji').textContent = emoji;
   state.currentRoom = name;
 }
 
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 async function fadeTransition(fn) {
   $('fade').classList.add('active');
-  await sleep(800);
+  await sleep(600);
   if (fn) await fn();
-  await sleep(300);
+  await sleep(200);
   $('fade').classList.remove('active');
 }
 
 function screenShake() {
-  $('scene').classList.add('screen-shake');
-  setTimeout(() => $('scene').classList.remove('screen-shake'), 400);
+  $('scene-area').classList.add('screen-shake');
+  setTimeout(() => $('scene-area').classList.remove('screen-shake'), 350);
 }
 
-async function jumpscare(emoji, duration = 800) {
-  playScareSound();
+async function jumpscare(emoji, duration = 700) {
+  seScare();
   const el = $('jumpscare');
   el.querySelector('.scare-text').textContent = emoji;
   el.classList.add('active');
@@ -564,54 +787,349 @@ async function jumpscare(emoji, duration = 800) {
   el.classList.remove('active');
 }
 
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
+// Typewriter
+function typeText(speaker, text) {
+  return new Promise(resolve => {
+    $('speaker').textContent = speaker;
+    $('message').innerHTML = '';
+    state.typing = true;
+    let i = 0;
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    function tick() {
+      if (!state.typing) { $('message').textContent = text; resolve(); return; }
+      if (i < text.length) {
+        $('message').textContent = text.substring(0, i + 1);
+        $('message').appendChild(cursor);
+        i++;
+        const ch = text[i-1];
+        const delay = (ch === '。' || ch === '…' || ch === '！' || ch === '？') ? 100 : 25 + Math.random() * 25;
+        setTimeout(tick, delay);
+      } else { state.typing = false; $('message').appendChild(cursor); resolve(); }
+    }
+    tick();
+  });
+}
+document.addEventListener('click', e => {
+  if (state.typing && !e.target.closest('.choice-btn, .battle-btn, .btn-main, #vol-control'))
+    state.typing = false;
+});
+
+function showChoices(choices) {
+  const el = $('choices');
+  el.innerHTML = '';
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c.text;
+    btn.addEventListener('click', () => { el.innerHTML = ''; c.action(); });
+    el.appendChild(btn);
+  });
 }
 
 function showEnding(title, text, color = '#8b0000') {
-  const el = $('ending-screen');
+  stopBgm();
   $('ending-title').textContent = title;
   $('ending-title').style.color = color;
   $('ending-text').textContent = text;
-  el.classList.add('active');
+  $('ending-screen').classList.add('active');
 }
 
-// =====================================================
-// GAME CONTENT - Rooms & Story
-// =====================================================
+// ============================================================
+// LEVEL UP SYSTEM
+// ============================================================
+function gainExp(amount) {
+  player.exp += amount;
+  while (player.exp >= player.nextExp) {
+    player.exp -= player.nextExp;
+    player.level++;
+    player.maxHp += 12;
+    player.hp = player.maxHp;
+    player.atk += 3;
+    player.def += 2;
+    player.nextExp = Math.floor(player.nextExp * 1.5);
+    if (player.level === 3) { player.skillName = '暗黒斬'; player.skillCost = 12; }
+    if (player.level === 5) { player.skillName = '滅殺'; player.skillCost = 15; }
+    showLevelUp();
+    seLevelUp();
+  }
+  updateHud();
+}
+
+function showLevelUp() {
+  $('levelup-text').innerHTML =
+    `レベル ${player.level} に上がった！<br>` +
+    `HP: ${player.maxHp}　ATK: ${player.atk}　DEF: ${player.def}` +
+    (player.level === 3 ? '<br>新スキル習得: 暗黒斬' : '') +
+    (player.level === 5 ? '<br>新スキル習得: 滅殺' : '');
+  $('levelup-overlay').classList.add('active');
+  setTimeout(() => $('levelup-overlay').classList.remove('active'), 2500);
+}
+
+// ============================================================
+// BATTLE SYSTEM
+// ============================================================
+let currentEnemy = null;
+let battleResolve = null;
+let battleActionsEnabled = false;
+
+const enemies = {
+  shadow:    { name: '徘徊する影',     emoji: '👤', hp: 30, atk: 7,  def: 2, exp: 12, isBoss: false },
+  nurse:     { name: '狂気の看護師',   emoji: '👩‍⚕️', hp: 45, atk: 10, def: 4, exp: 18, isBoss: false },
+  patient:   { name: '被験者の亡霊',   emoji: '👻', hp: 35, atk: 12, def: 3, exp: 15, isBoss: false },
+  hound:     { name: '異形の犬',       emoji: '🐕‍🦺', hp: 40, atk: 9,  def: 5, exp: 16, isBoss: false },
+  specimen:  { name: '被験者No.7',     emoji: '😱', hp: 120, atk: 18, def: 8, exp: 50, isBoss: true },
+};
+
+function spawnDmgNumber(text, cssClass, parent) {
+  const el = document.createElement('div');
+  el.className = 'dmg-number ' + cssClass;
+  el.textContent = text;
+  el.style.left = (30 + Math.random() * 40) + '%';
+  el.style.top  = (30 + Math.random() * 20) + '%';
+  parent.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function startBattle(enemyId, canFlee = true) {
+  return new Promise(resolve => {
+    battleResolve = resolve;
+    const tmpl = enemies[enemyId];
+    currentEnemy = { ...tmpl, maxHp: tmpl.hp };
+    state.inBattle = true;
+
+    // UI
+    $('enemy-name').textContent = currentEnemy.name;
+    $('enemy-sprite').textContent = currentEnemy.emoji;
+    $('enemy-sprite').classList.remove('enemy-hit');
+    updateEnemyHp();
+    $('battle-log').innerHTML = `<div>${currentEnemy.name} が現れた！</div>`;
+    $('battle-screen').classList.add('active');
+    $('btn-flee').disabled = !canFlee;
+
+    if (tmpl.isBoss) playBgmBoss();
+    else playBgmBattle();
+
+    battleActionsEnabled = true;
+  });
+}
+
+function updateEnemyHp() {
+  const pct = Math.max(0, currentEnemy.hp / currentEnemy.maxHp * 100);
+  $('enemy-hp-fill').style.width = pct + '%';
+  $('enemy-hp-text').textContent = `${Math.max(0,currentEnemy.hp)} / ${currentEnemy.maxHp}`;
+}
+
+function battleLog(msg) {
+  const el = $('battle-log');
+  el.innerHTML += `<div>${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function calcDamage(atk, def) {
+  const base = Math.max(1, atk - def + Math.floor(Math.random() * 5) - 2);
+  const crit = Math.random() < 0.1;
+  return { dmg: crit ? base * 2 : base, crit };
+}
+
+async function playerAttack(multiplier = 1, isSkill = false) {
+  const effectiveAtk = Math.floor(player.atk * multiplier);
+  const { dmg, crit } = calcDamage(effectiveAtk, currentEnemy.def);
+  currentEnemy.hp -= dmg;
+
+  if (isSkill) seSkill(); else seAttack();
+  $('enemy-sprite').classList.add('enemy-hit');
+  spawnDmgNumber((crit ? 'CRITICAL! ' : '') + dmg, 'enemy-dmg', $('battle-bg'));
+  setTimeout(() => $('enemy-sprite').classList.remove('enemy-hit'), 300);
+
+  const label = isSkill ? player.skillName : '攻撃';
+  battleLog(`${player.name}の${label}！ ${dmg}のダメージ！${crit ? ' 会心の一撃！' : ''}`);
+  updateEnemyHp();
+
+  await sleep(500);
+
+  if (currentEnemy.hp <= 0) {
+    await enemyDefeated();
+    return;
+  }
+  await enemyTurn();
+}
+
+async function enemyTurn() {
+  await sleep(300);
+  const { dmg, crit } = calcDamage(currentEnemy.atk, player.def);
+  player.hp -= dmg;
+  if (player.hp < 0) player.hp = 0;
+
+  seEnemyAttack();
+  $('hud').classList.add('player-damage');
+  spawnDmgNumber(dmg, 'player-dmg', $('battle-bg'));
+  setTimeout(() => $('hud').classList.remove('player-damage'), 300);
+
+  battleLog(`${currentEnemy.name}の攻撃！ ${dmg}のダメージ！${crit ? ' 痛恨の一撃！' : ''}`);
+  updateHud();
+
+  await sleep(400);
+
+  if (player.hp <= 0) {
+    await playerDefeated();
+    return;
+  }
+  battleActionsEnabled = true;
+}
+
+async function enemyDefeated() {
+  battleActionsEnabled = false;
+  seVictory();
+  battleLog(`${currentEnemy.name}を倒した！ ${currentEnemy.exp} EXP を獲得！`);
+  await sleep(800);
+  gainExp(currentEnemy.exp);
+  await sleep(1200);
+  $('battle-screen').classList.remove('active');
+  state.inBattle = false;
+  playBgmExplore();
+  if (battleResolve) battleResolve('win');
+}
+
+async function playerDefeated() {
+  battleActionsEnabled = false;
+  seDeath();
+  battleLog(`${player.name}は倒れた…`);
+  await sleep(1500);
+  $('battle-screen').classList.remove('active');
+  state.inBattle = false;
+  if (battleResolve) battleResolve('lose');
+}
+
+// Battle button handlers
+$('btn-attack').addEventListener('click', async () => {
+  if (!battleActionsEnabled) return;
+  battleActionsEnabled = false;
+  await playerAttack(1, false);
+});
+
+$('btn-skill').addEventListener('click', async () => {
+  if (!battleActionsEnabled) return;
+  if (player.hp <= player.skillCost) {
+    battleLog('HPが足りない！');
+    return;
+  }
+  battleActionsEnabled = false;
+  player.hp -= player.skillCost;
+  updateHud();
+  battleLog(`${player.name}は ${player.skillName} を放った！ (HP -${player.skillCost})`);
+  await playerAttack(2.2, true);
+});
+
+$('btn-heal').addEventListener('click', async () => {
+  if (!battleActionsEnabled) return;
+  if (player.potions <= 0) { battleLog('回復薬がない！'); return; }
+  battleActionsEnabled = false;
+  player.potions--;
+  const heal = Math.floor(player.maxHp * 0.5);
+  player.hp = Math.min(player.maxHp, player.hp + heal);
+  seHeal();
+  spawnDmgNumber('+' + heal, 'heal', $('battle-bg'));
+  battleLog(`回復薬を使った！ HPが ${heal} 回復した！`);
+  updateHud();
+  await sleep(500);
+  await enemyTurn();
+});
+
+$('btn-flee').addEventListener('click', async () => {
+  if (!battleActionsEnabled || $('btn-flee').disabled) return;
+  battleActionsEnabled = false;
+  seFlee();
+  if (Math.random() < 0.6) {
+    seFleeSuccess();
+    battleLog('うまく逃げ出した！');
+    await sleep(800);
+    $('battle-screen').classList.remove('active');
+    state.inBattle = false;
+    playBgmExplore();
+    if (battleResolve) battleResolve('flee');
+  } else {
+    battleLog('逃げられなかった！');
+    seMiss();
+    await sleep(400);
+    await enemyTurn();
+  }
+});
+
+// ============================================================
+// RANDOM ENCOUNTER
+// ============================================================
+async function randomEncounter() {
+  if (Math.random() < 0.35) {
+    const pool = ['shadow', 'nurse', 'patient', 'hound'];
+    const id = pool[Math.floor(Math.random() * pool.length)];
+    await typeText('', '…！何かの気配がする！');
+    screenShake();
+    await sleep(400);
+    const result = await startBattle(id, true);
+    if (result === 'lose') {
+      await gameOver();
+      return true;
+    }
+    // Chance to find potion after battle
+    if (result === 'win' && Math.random() < 0.3) {
+      player.potions++;
+      sePickup();
+      await typeText('', '戦闘の後、回復薬を見つけた！');
+      updateHud();
+    }
+  }
+  return false;
+}
+
+async function gameOver() {
+  stopBgm();
+  await fadeTransition(() => {});
+  showEnding(
+    'GAME OVER',
+    'あなたの意識は闇に飲まれた…\n廃病院の中で、また一つ、亡霊が増えた。\n\n次こそは脱出できるだろうか…',
+    '#8b0000'
+  );
+}
+
+// ============================================================
+// GAME CONTENT - ROOMS & STORY
+// ============================================================
 
 // --- Room 1: 手術室 ---
 async function room_operatingRoom() {
   await fadeTransition(() => {
     setRoom('手術室', 'linear-gradient(180deg, #0d0d0d 0%, #1a0505 100%)', '🏥');
   });
-
-  await typeText('', 'ぼんやりとした意識の中、冷たい金属の感触で目が覚めた。');
-  await sleep(500);
-  await typeText('', '蛍光灯が不規則に明滅している…ここは…手術室？\n古びた手術台の上に横たわっていたようだ。');
-  await sleep(500);
-  await typeText('', '辺りには錆びた医療器具が散乱している。\n空気は重く、かすかに血の匂いがする。');
-
-  await sleep(300);
+  if (!state.flags.intro) {
+    playBgmExplore();
+    await typeText('', 'ぼんやりとした意識の中、冷たい金属の感触で目が覚めた。');
+    await sleep(400);
+    await typeText('', '蛍光灯が不規則に明滅している…ここは…手術室？\n古びた手術台の上に横たわっていたようだ。');
+    await sleep(400);
+    await typeText('', '辺りには錆びた医療器具が散乱している。\n空気は重く、かすかに血の匂いがする。');
+    state.flags.intro = true;
+  } else {
+    await typeText('', '手術室。ここが最初に目覚めた場所だ。');
+  }
+  await sleep(200);
   showRoomChoices_operatingRoom();
 }
 
 function showRoomChoices_operatingRoom() {
   const choices = [
-    { text: '手術台の周りを調べる', action: action_searchTable },
-    { text: '棚を調べる', action: action_searchShelf },
-    { text: '扉に向かう', action: action_tryDoor1 },
+    { text: '⚔️ 手術台の周りを調べる', action: action_searchTable },
+    { text: '🔍 棚を調べる', action: action_searchShelf },
+    { text: '🚪 扉に向かう', action: action_tryDoor1 },
   ];
-  if (state.flags.foundNote1) {
-    choices.push({ text: '廊下へ出る', action: room_corridor });
-  }
+  if (state.flags.foundNote1) choices.push({ text: '➡️ 廊下へ出る', action: room_corridor });
   showChoices(choices);
 }
 
 async function action_searchTable() {
   if (!state.flags.searchedTable) {
     await typeText('', '手術台の下に、何かが落ちている…');
-    await sleep(400);
+    await sleep(300);
     screenShake();
     await typeText('', '古い懐中電灯だ。電池はまだ残っているようだ。');
     addItem('flashlight', '懐中電灯', '🔦');
@@ -619,27 +1137,32 @@ async function action_searchTable() {
   } else {
     await typeText('', '手術台の周りには、もう目ぼしいものはない。');
   }
-  await sleep(300);
+  await sleep(200);
   showRoomChoices_operatingRoom();
 }
 
 async function action_searchShelf() {
   if (!state.flags.searchedShelf) {
     await typeText('', '埃をかぶった棚を漁る。割れた薬瓶、変色した包帯…');
-    await sleep(500);
-    await typeText('', '棚の奥に、折りたたまれたメモが挟まっていた。');
+    await sleep(400);
+    await typeText('', '回復薬が1つ見つかった！');
+    player.potions++;
+    sePickup();
+    updateHud();
     await sleep(300);
+    await typeText('', '棚の奥に、折りたたまれたメモが挟まっていた。');
+    await sleep(200);
     await typeText('???のメモ', '「3階の院長室に鍵がある。地下には絶対に行くな。\nあいつが来る前に逃げろ。」');
     state.flags.foundNote1 = true;
     state.flags.searchedShelf = true;
     addItem('memo1', '誰かのメモ', '📝');
-    await sleep(400);
+    await sleep(300);
     await typeText('', '…扉の鍵が、内側から外れているのに気付いた。');
-    playDoorSound();
+    seDoor();
   } else {
     await typeText('', '棚にはもう何もない。埃が舞うだけだ。');
   }
-  await sleep(300);
+  await sleep(200);
   showRoomChoices_operatingRoom();
 }
 
@@ -648,14 +1171,14 @@ async function action_tryDoor1() {
     await typeText('', '扉は…固い。内側から何かで固定されているようだ。\nもう少しこの部屋を調べた方がいい。');
   } else {
     await typeText('', '扉は開く。暗い廊下が続いている…');
-    await sleep(300);
+    await sleep(200);
     showChoices([
-      { text: '廊下へ出る', action: room_corridor },
-      { text: 'もう少し部屋を調べる', action: () => showRoomChoices_operatingRoom() },
+      { text: '➡️ 廊下へ出る', action: room_corridor },
+      { text: '🔍 もう少し調べる', action: () => showRoomChoices_operatingRoom() },
     ]);
     return;
   }
-  await sleep(300);
+  await sleep(200);
   showRoomChoices_operatingRoom();
 }
 
@@ -665,11 +1188,16 @@ async function room_corridor() {
     setRoom('2階 廊下', 'linear-gradient(180deg, #0a0a0a 0%, #0d0808 100%)', '🚪');
   });
 
+  // Random encounter when entering corridor
+  if (state.flags.visitedCorridor) {
+    const dead = await randomEncounter();
+    if (dead) return;
+  }
+
   if (!state.flags.visitedCorridor) {
     await typeText('', '廊下に出た。非常灯の赤い光が、壁を不気味に照らしている。');
-    await sleep(400);
-    playHorrorAmbience();
-    await typeText('', '右手には階段の案内表示が見える。\n左手には「ナースステーション」と書かれたプレートが。');
+    await sleep(300);
+    await typeText('', '右手には上下に続く階段。\n左手には「ナースステーション」と書かれたプレートが。');
     await sleep(300);
     await typeText('', '…どこかから、何かを引きずるような音が聞こえる。');
     screenShake();
@@ -677,19 +1205,19 @@ async function room_corridor() {
   } else {
     await typeText('', '薄暗い廊下。非常灯だけが頼りだ。');
   }
-
-  await sleep(300);
+  await sleep(200);
 
   const choices = [
-    { text: 'ナースステーションへ', action: room_nurseStation },
-    { text: '階段で3階へ上がる', action: room_stairsUp },
+    { text: '💊 ナースステーションへ', action: room_nurseStation },
+    { text: '⬆️ 階段で3階へ上がる', action: room_stairsUp },
+    { text: '⬇️ 階段で1階へ下りる', action: room_corridorToLobby },
   ];
   if (!state.flags.warnedBasement) {
-    choices.push({ text: '階段で地下へ下りる', action: action_goBasement });
+    choices.push({ text: '⬇️ 階段で地下へ下りる', action: action_goBasement });
   } else {
-    choices.push({ text: '階段で地下へ下りる（メモには行くなと…）', action: action_goBasementConfirm });
+    choices.push({ text: '⚠️ 地下へ下りる（行くなと…）', action: action_goBasementConfirm });
   }
-  choices.push({ text: '手術室に戻る', action: room_operatingRoom });
+  choices.push({ text: '🏥 手術室に戻る', action: room_operatingRoom });
   showChoices(choices);
 }
 
@@ -699,11 +1227,10 @@ async function action_goBasement() {
   await sleep(300);
   room_corridor();
 }
-
 async function action_goBasementConfirm() {
   showChoices([
-    { text: 'それでも地下へ下りる', action: room_basement },
-    { text: 'やめておく', action: room_corridor },
+    { text: '☠️ それでも地下へ下りる', action: room_basement },
+    { text: '↩️ やめておく', action: room_corridor },
   ]);
 }
 
@@ -715,13 +1242,12 @@ async function room_nurseStation() {
 
   if (!state.flags.visitedNurse) {
     await typeText('', 'カウンターの向こうには、散乱したカルテと壊れたパソコン。');
-    await sleep(400);
-    await typeText('', '壁にかけられたホワイトボードには、判読できない文字で\n何かが殴り書きされている…');
     await sleep(300);
-
+    await typeText('', '壁にかけられたホワイトボードには、判読できない文字で\n何かが殴り書きされている…');
+    await sleep(200);
     if (hasItem('flashlight')) {
       await typeText('', '懐中電灯で照らすと、文字が読めた。');
-      await sleep(300);
+      await sleep(200);
       await typeText('ホワイトボード', '「暗証番号: 院長の部屋番号を逆から\n部屋番号は 304」');
       state.flags.knowPasscode = true;
       await typeText('', '…つまり暗証番号は「403」か。');
@@ -733,19 +1259,16 @@ async function room_nurseStation() {
     await typeText('', 'ナースステーション。カルテが散らばっている。');
     if (!state.flags.knowPasscode && hasItem('flashlight')) {
       await typeText('', '懐中電灯で照らすと、ホワイトボードの文字が読めた。');
-      await typeText('ホワイトボード', '「暗証番号: 院長の部屋番号を逆から\n部屋番号は 304」');
+      await typeText('ホワイトボード', '「暗証番号: 院長の部屋番号を逆から → 304」');
       state.flags.knowPasscode = true;
       await typeText('', '…暗証番号は「403」だ。');
     }
   }
-
-  await sleep(300);
-
-  const choices = [
-    { text: 'カウンターの引き出しを調べる', action: action_nurseDrawer },
-    { text: '廊下に戻る', action: room_corridor },
-  ];
-  showChoices(choices);
+  await sleep(200);
+  showChoices([
+    { text: '🔍 カウンターの引き出しを調べる', action: action_nurseDrawer },
+    { text: '↩️ 廊下に戻る', action: room_corridor },
+  ]);
 }
 
 async function action_nurseDrawer() {
@@ -753,13 +1276,16 @@ async function action_nurseDrawer() {
     await typeText('', '引き出しを開けると…古い鍵が1つ。ラベルには「倉庫」と書かれている。');
     addItem('storageKey', '倉庫の鍵', '🗝️');
     state.flags.searchedNurseDrawer = true;
+    await sleep(200);
+    await typeText('', 'さらに奥に回復薬が2つ隠されていた！');
+    player.potions += 2;
+    sePickup();
+    updateHud();
   } else {
     await typeText('', '引き出しにはもう何もない。');
   }
-  await sleep(300);
-  showChoices([
-    { text: '廊下に戻る', action: room_corridor },
-  ]);
+  await sleep(200);
+  showChoices([{ text: '↩️ 廊下に戻る', action: room_corridor }]);
 }
 
 // --- Room 4: 3階 ---
@@ -768,84 +1294,90 @@ async function room_stairsUp() {
     setRoom('3階 廊下', 'linear-gradient(180deg, #0a0a0d 0%, #0d0505 100%)', '🔒');
   });
 
+  // Encounter chance
+  if (state.flags.visited3F) {
+    const dead = await randomEncounter();
+    if (dead) return;
+  }
+
   if (!state.flags.visited3F) {
     await typeText('', '3階に上がった。ここは一段と暗い。');
-    await sleep(400);
+    await sleep(300);
     await typeText('', '廊下の突き当たりに「院長室 304」と書かれた扉がある。\nその手前に、鍵のかかった倉庫がある。');
     state.flags.visited3F = true;
 
-    // Random scare event
-    await sleep(800);
+    await sleep(600);
     await typeText('', '……ッ！');
-    await jumpscare('👁️', 600);
-    await typeText('', '廊下の奥の暗闇から、何かがこちらを見ていた気がした…\nいや、気のせいだ。気のせいだと思いたい。');
+    await jumpscare('👁️', 500);
+    await typeText('', '廊下の奥の暗闘から、何かがこちらを見ていた気がした…');
+    await sleep(300);
+
+    // First battle (tutorial-like)
+    await typeText('', '…影が動いた！');
+    const result = await startBattle('shadow', false);
+    if (result === 'lose') { await gameOver(); return; }
+    await typeText('', '何とか撃退した…だが、この先にはもっと危険が待っていそうだ。');
   } else {
     await typeText('', '3階の廊下。院長室と倉庫がある。');
   }
-
-  await sleep(300);
-
-  const choices = [
-    { text: '院長室の扉を調べる', action: action_directorDoor },
-    { text: '倉庫を調べる', action: action_storage },
-    { text: '2階に戻る', action: room_corridor },
-  ];
-  showChoices(choices);
+  await sleep(200);
+  showChoices([
+    { text: '🔒 院長室の扉を調べる', action: action_directorDoor },
+    { text: '📦 倉庫を調べる', action: action_storage },
+    { text: '⬇️ 2階に戻る', action: room_corridor },
+  ]);
 }
 
 async function action_directorDoor() {
-  if (state.flags.directorUnlocked) {
-    await room_directorRoom();
-    return;
-  }
-
+  if (state.flags.directorUnlocked) { await room_directorRoom(); return; }
   await typeText('', '院長室の扉にはテンキー式のロックがかかっている。');
-
   if (state.flags.knowPasscode) {
     showChoices([
-      { text: '暗証番号「403」を入力する', action: action_unlockDirector },
-      { text: '戻る', action: room_stairsUp },
+      { text: '🔢 暗証番号「403」を入力する', action: action_unlockDirector },
+      { text: '↩️ 戻る', action: room_stairsUp },
     ]);
   } else {
     await typeText('', '暗証番号が分からない…どこかにヒントがあるはずだ。');
-    await sleep(300);
-    showChoices([
-      { text: '3階廊下に戻る', action: room_stairsUp },
-    ]);
+    await sleep(200);
+    showChoices([{ text: '↩️ 3階廊下に戻る', action: room_stairsUp }]);
   }
 }
 
 async function action_unlockDirector() {
   await typeText('', '4…0…3…');
-  await sleep(600);
-  playUnlockSound();
+  await sleep(500);
+  seUnlock();
   await typeText('', 'カチッ。ロックが解除された。');
   state.flags.directorUnlocked = true;
-  await sleep(300);
+  await sleep(200);
   await room_directorRoom();
 }
 
 async function action_storage() {
   if (state.flags.storageOpened) {
-    await typeText('', '倉庫の中にはもう何もない。');
-    await sleep(300);
-    showChoices([{ text: '戻る', action: room_stairsUp }]);
+    await typeText('', '倉庫にはもう何もない。');
+    await sleep(200);
+    showChoices([{ text: '↩️ 戻る', action: room_stairsUp }]);
     return;
   }
-
   if (hasItem('storageKey')) {
     await typeText('', '倉庫の鍵を使って扉を開けた。');
-    playDoorSound();
+    seDoor();
     removeItem('storageKey');
-    await sleep(400);
+    await sleep(300);
     await typeText('', '中には非常用のバールが立てかけてあった。\nこれがあれば、固い扉もこじ開けられるかもしれない。');
     addItem('crowbar', 'バール', '🔧');
     state.flags.storageOpened = true;
+    await sleep(200);
+    await typeText('', 'さらに、回復薬が2つ見つかった！');
+    player.potions += 2;
+    sePickup();
+    updateHud();
   } else {
     await typeText('', '倉庫の扉は鍵がかかっている。鍵が必要だ。');
   }
-  await sleep(300);
-  showChoices([{ text: '戻る', action: room_stairsUp }]);
+  await sleep(200);
+  showChoices([{ text: '↩️ 戻る', action: room_stairsUp }]);
 }
 
 // --- Room 5: 院長室 ---
@@ -853,28 +1385,26 @@ async function room_directorRoom() {
   await fadeTransition(() => {
     setRoom('院長室', 'linear-gradient(180deg, #0d0d0a 0%, #1a0d05 100%)', '📋');
   });
+  playBgmSafe();
 
   if (!state.flags.visitedDirector) {
     await typeText('', '広い部屋だ。大きな机と、革張りの椅子。\n壁には数々の賞状と…何かの実験記録のようなものが貼られている。');
-    await sleep(500);
+    await sleep(400);
     await typeText('', '机の上に、1枚のカルテが置かれている。');
-    await sleep(300);
+    await sleep(200);
     await typeText('院長のカルテ', '「被験者No.7 ― 投薬実験後、著しい攻撃性の増加を確認。\n拘束帯では抑えきれず、地下隔離室へ移送。\nなお、被験者は元看護師の██████である。」');
-    await sleep(500);
+    await sleep(400);
     await typeText('', '………これは、何の実験をしていたんだ？');
     state.flags.visitedDirector = true;
   } else {
-    await typeText('', '院長室。不気味な実験記録が壁に貼られている。');
+    await typeText('', '院長室。ここだけは不気味なほど静かだ。');
   }
-
-  await sleep(300);
-
-  const choices = [
-    { text: '机の引き出しを調べる', action: action_directorDesk },
-    { text: '壁の実験記録を詳しく読む', action: action_readRecords },
-    { text: '3階廊下に戻る', action: room_stairsUp },
-  ];
-  showChoices(choices);
+  await sleep(200);
+  showChoices([
+    { text: '🔍 机の引き出しを調べる', action: action_directorDesk },
+    { text: '📄 壁の実験記録を読む', action: action_readRecords },
+    { text: '↩️ 3階廊下に戻る', action: () => { playBgmExplore(); room_stairsUp(); } },
+  ]);
 }
 
 async function action_directorDesk() {
@@ -882,207 +1412,205 @@ async function action_directorDesk() {
     await typeText('', '引き出しの中に、重厚な鍵が入っていた。\nタグには「正面玄関」と刻まれている。');
     addItem('exitKey', '正面玄関の鍵', '🔑');
     state.flags.searchedDirectorDesk = true;
-    await sleep(400);
+    await sleep(300);
     await typeText('', 'これで…出口の鍵は手に入った。\nあとはこの建物から脱出するだけだ。');
   } else {
     await typeText('', '引き出しにはもう何もない。');
   }
-  await sleep(300);
+  await sleep(200);
   showChoices([
-    { text: '院長室を調べる', action: room_directorRoom },
-    { text: '3階廊下に戻る', action: room_stairsUp },
+    { text: '📋 院長室を調べる', action: room_directorRoom },
+    { text: '↩️ 3階廊下に戻る', action: () => { playBgmExplore(); room_stairsUp(); } },
   ]);
 }
 
 async function action_readRecords() {
   await typeText('院長の実験記録', '「Phase 3: 被験者の身体能力が常人の域を超えた。\n暗所での視力が著しく向上。光に対して激しい拒否反応。\n人語を話さなくなり、代わりに…」');
-  await sleep(500);
+  await sleep(400);
   await typeText('', '記録はそこで途切れている。\n紙の端は、何かに引き裂かれたように破れていた。');
-  await sleep(300);
-  showChoices([
-    { text: '院長室を調べる', action: room_directorRoom },
-  ]);
+  await sleep(200);
+  showChoices([{ text: '📋 院長室を調べる', action: room_directorRoom }]);
 }
 
-// --- Room 6: 1階ロビー (Exit) ---
+// --- Room 6: 1階ロビー ---
+async function room_corridorToLobby() {
+  if (hasItem('crowbar') || state.flags.lobbyAccessible) {
+    if (!state.flags.lobbyAccessible) {
+      await typeText('', 'バールで防火扉をこじ開けた！');
+      seDoor();
+      screenShake();
+      state.flags.lobbyAccessible = true;
+      await sleep(400);
+    }
+    await room_lobby();
+  } else {
+    await typeText('', '1階への階段を下りると、防火扉が道を塞いでいる。\n素手では開けられそうにない。何か道具が必要だ。');
+    await sleep(200);
+    showChoices([{ text: '↩️ 2階廊下に戻る', action: room_corridor }]);
+  }
+}
+
 async function room_lobby() {
   await fadeTransition(() => {
     setRoom('1階 ロビー', 'linear-gradient(180deg, #0a0a0a 0%, #0d0d05 100%)', '🚪');
   });
 
   await typeText('', '1階のロビーに辿り着いた。\n正面に大きなガラスの扉がある。外の光がかすかに見える…！');
-  await sleep(500);
+  await sleep(400);
 
   if (hasItem('exitKey')) {
-    showChoices([
-      { text: '正面玄関の鍵を使う', action: action_escape },
-    ]);
+    showChoices([{ text: '🔑 正面玄関の鍵を使う', action: action_escape }]);
   } else {
     await typeText('', '玄関の扉は厳重に施錠されている。鍵がなければ開かない。');
-    await sleep(300);
-    showChoices([
-      { text: '2階に戻る', action: room_corridor },
-    ]);
+    await sleep(200);
+    showChoices([{ text: '↩️ 2階に戻る', action: room_corridor }]);
   }
 }
 
 async function action_escape() {
   await typeText('', '震える手で鍵を差し込む。');
-  await sleep(600);
-  playUnlockSound();
-  await typeText('', 'カチャ…ッ！扉が開いた！');
   await sleep(500);
+  seUnlock();
+  await typeText('', 'カチャ…ッ！扉が開いた！');
+  await sleep(400);
 
-  // Final scare
   screenShake();
   await typeText('', '………背後から、激しい足音が近づいてくる！');
   await sleep(300);
-  await jumpscare('👤', 500);
-  playScareSound();
+  await jumpscare('😱', 500);
   await sleep(200);
 
-  await typeText('', '振り返らず、夢中で外へ飛び出した——');
-  await sleep(800);
+  await typeText('???', '逃ガサナイ…');
+  await sleep(500);
+
+  // FINAL BOSS
+  await typeText('', '被験者No.7が行く手を阻む！ 戦わなければ脱出できない！');
+  await sleep(300);
+
+  const result = await startBattle('specimen', false);
+  if (result === 'lose') {
+    await gameOver();
+    return;
+  }
+
+  // Victory!
+  stopBgm();
+  await typeText('', '被験者No.7は崩れ落ち…霧のように消えていった。');
+  await sleep(500);
+  await typeText('', '夢中で外へ飛び出した——');
+  await sleep(600);
 
   await fadeTransition(() => {});
-  await sleep(500);
+  await sleep(400);
+
+  // Victory fanfare
+  seVictory();
+  setTimeout(() => seVictory(), 800);
+
   showEnding(
     'ESCAPE - 脱出成功',
-    '朝焼けの光が、あなたの体を包んだ。\n背後の廃病院からは、もう何の物音も聞こえない。\n\nあの病院で何があったのか、あなたには分からない。\nただ一つ確かなのは——もう二度と戻りたくない、ということだけだ。\n\nおめでとうございます。あなたは廃病院から脱出しました。',
-    '#4a8b00'
+    '朝焼けの光が、あなたの体を包んだ。\n背後の廃病院からは、もう何の物音も聞こえない。\n\nレベル' + player.level + 'まで成長し、数々の恐怖を乗り越え、\nあなたは廃病院からの脱出を果たした。\n\nおめでとうございます。',
+    '#44aa00'
   );
 }
 
-// --- Room 7: 地下 (Bad Ending) ---
+// --- Room 7: 地下 (Boss Route / Bad End) ---
 async function room_basement() {
   await fadeTransition(() => {
     setRoom('地下 隔離室', 'linear-gradient(180deg, #050505 0%, #0a0000 100%)', '⛓️');
   });
 
   await typeText('', '階段を下りていく。空気が変わった。\n湿気と、何か…腐敗したような臭い。');
-  await sleep(600);
-  playHorrorAmbience();
-
-  await typeText('', '地下には長い廊下が続いていた。\n壁には何本もの引っかき傷が刻まれている。');
   await sleep(500);
 
-  await typeText('', '廊下の奥に、鉄の扉がある。少しだけ開いている。');
+  await typeText('', '地下には長い廊下が続いていた。\n壁には何本もの引っかき傷が刻まれている。');
+  await sleep(400);
+
+  // Battle in basement
+  await typeText('', '…暗闇の中から、何かが近づいてくる！');
+  screenShake();
   await sleep(300);
 
+  const result1 = await startBattle('patient', true);
+  if (result1 === 'lose') { await gameOver(); return; }
+  if (result1 === 'flee') { await room_corridor(); return; }
+
+  await typeText('', '廊下の奥に、鉄の扉がある。少しだけ開いている。');
+  await sleep(200);
+
   showChoices([
-    { text: '扉の中を覗く', action: action_peekBasement },
-    { text: '引き返す', action: action_basementReturn },
+    { text: '👁️ 扉の中を覗く', action: action_peekBasement },
+    { text: '↩️ 引き返す', action: action_basementReturn },
   ]);
 }
 
 async function action_peekBasement() {
-  await typeText('', '隙間から中を覗き込む。');
-  await sleep(500);
-  await typeText('', '暗い。何も見えない。');
+  await typeText('', '隙間から中を覗き込む…');
   await sleep(400);
+  await typeText('', '暗い。何も見えない。');
+  await sleep(300);
   await typeText('', '……目が暗闇に慣れてきた。\n部屋の中には、壊れた拘束具と…');
-  await sleep(600);
-
+  await sleep(500);
   screenShake();
   await typeText('', '———部屋は、空だった。');
-  await sleep(400);
-
-  await typeText('', 'いや、おかしい。拘束具は壊れている。\nつまり、ここにいた「何か」は——');
-  await sleep(600);
-
-  await jumpscare('😱', 1000);
-  screenShake();
-  playScareSound();
   await sleep(300);
+  await typeText('', 'いや、おかしい。拘束具は壊れている。\nつまり、ここにいた「何か」は——');
+  await sleep(500);
+  await jumpscare('😱', 800);
+  screenShake();
+  await sleep(200);
 
   await typeText('???', 'ミ ツ ケ タ');
-  await sleep(800);
+  await sleep(400);
 
-  await fadeTransition(() => {});
-  await sleep(500);
-  showEnding(
-    'DEAD END',
-    'メモの警告を無視して地下へ向かったあなたは、\n二度と地上に戻ることはなかった。\n\n後日、この廃病院に別の探索者が訪れた時、\n地下の壁には新しい引っかき傷が一本、増えていたという——',
-    '#8b0000'
-  );
+  // Unwinnable boss
+  await typeText('', '被験者No.7が立ち塞がる！ この狭い空間では逃げられない！');
+  const result = await startBattle('specimen', false);
+  if (result === 'lose') {
+    stopBgm();
+    await fadeTransition(() => {});
+    showEnding(
+      'DEAD END',
+      'メモの警告を無視して地下へ向かったあなたは、\n密室で被験者No.7と対峙し…二度と地上に戻ることはなかった。\n\n後日、この廃病院に別の探索者が訪れた時、\n地下の壁には新しい引っかき傷が一本、増えていたという——',
+      '#8b0000'
+    );
+    return;
+  }
+  // If somehow win (high level)
+  stopBgm();
+  await typeText('', '信じられない…地下の化け物を倒した！');
+  await sleep(300);
+  await typeText('', '被験者No.7の残骸の中から、光る何かが見える…');
+  addItem('amulet', '呪われたお守り', '🔮');
+  state.flags.defeatedBasementBoss = true;
+  await sleep(300);
+  await typeText('', '急いでここから離れよう。');
+  await sleep(200);
+  playBgmExplore();
+  room_corridor();
 }
 
 async function action_basementReturn() {
   await typeText('', 'ここにいてはいけない。本能がそう告げている。');
-  await sleep(400);
-
-  // Scare on returning
-  await typeText('', '振り返った瞬間——');
   await sleep(300);
-  await jumpscare('👁️', 500);
+  await typeText('', '振り返った瞬間——');
+  await sleep(200);
+  await jumpscare('👁️', 400);
   await typeText('', '暗闇の奥で、何かが動いた気がした。\n急いで階段を駆け上がる！');
   screenShake();
-  await sleep(300);
+  await sleep(200);
   room_corridor();
 }
 
-// --- Navigation: Going down from corridor ---
-async function room_corridorToLobby() {
-  if (hasItem('crowbar') || state.flags.lobbyAccessible) {
-    state.flags.lobbyAccessible = true;
-    await room_lobby();
-  } else {
-    await typeText('', '1階への階段を下りると、防火扉が道を塞いでいる。\n素手では開けられそうにない。何か道具が必要だ。');
-    await sleep(300);
-    showChoices([
-      { text: '2階廊下に戻る', action: room_corridor },
-    ]);
-  }
-}
-
-// Update corridor to include lobby route
-const original_room_corridor = room_corridor;
-room_corridor = async function() {
-  await fadeTransition(() => {
-    setRoom('2階 廊下', 'linear-gradient(180deg, #0a0a0a 0%, #0d0808 100%)', '🚪');
-  });
-
-  if (!state.flags.visitedCorridor) {
-    await typeText('', '廊下に出た。非常灯の赤い光が、壁を不気味に照らしている。');
-    await sleep(400);
-    playHorrorAmbience();
-    await typeText('', '右手には上下に続く階段。\n左手には「ナースステーション」と書かれたプレートが。');
-    await sleep(300);
-    await typeText('', '…どこかから、何かを引きずるような音が聞こえる。');
-    screenShake();
-    state.flags.visitedCorridor = true;
-  } else {
-    await typeText('', '薄暗い廊下。非常灯だけが頼りだ。');
-  }
-
-  await sleep(300);
-
-  const choices = [
-    { text: 'ナースステーションへ', action: room_nurseStation },
-    { text: '階段で3階へ上がる', action: room_stairsUp },
-    { text: '階段で1階へ下りる', action: room_corridorToLobby },
-  ];
-  if (!state.flags.warnedBasement) {
-    choices.push({ text: '階段で地下へ下りる', action: action_goBasement });
-  } else {
-    choices.push({ text: '階段で地下へ下りる（メモには行くなと…）', action: action_goBasementConfirm });
-  }
-  choices.push({ text: '手術室に戻る', action: room_operatingRoom });
-  showChoices(choices);
-};
-
-// =====================================================
+// ============================================================
 // GAME START
-// =====================================================
-
+// ============================================================
 $('start-btn').addEventListener('click', () => {
   initAudio();
   $('title-screen').classList.add('hidden');
   $('game').classList.add('active');
-  startAmbience();
-  setTimeout(() => {
-    room_operatingRoom();
-  }, 1000);
+  updateHud();
+  setTimeout(() => room_operatingRoom(), 800);
 });
 </script>
 </body>
